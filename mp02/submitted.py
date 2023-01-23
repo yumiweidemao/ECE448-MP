@@ -142,5 +142,18 @@ def optimize_hyperparameters(texts, labels, nonstop, priors, smoothnesses):
         - accuracies[m,n] = dev set accuracy achieved using the
           m'th candidate prior and the n'th candidate smoothness
     '''
-    raise RuntimeError("You need to write this part!")
+    m, n = len(priors), len(smoothnesses)
+    accuracies = np.array([[0.0 for _ in range(n)] for _ in range(m)])
+    for x in range(m):
+        for y in range(n):
+            likelihood = laplace_smoothing(nonstop, smoothnesses[y])
+            hypo = naive_bayes(texts, likelihood, priors[x])
+            count_correct = 0
+            for (k, khat) in zip(labels, hypo):
+                if k == khat:
+                    count_correct += 1
+            accuracies[x][y] = count_correct / len(labels)
+
+    return accuracies
+
                           
