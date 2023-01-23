@@ -21,7 +21,14 @@ def create_frequency_table(train):
     frequency (dict of Counters) 
         - frequency[y][x] = number of tokens of word x in texts of class y
     '''
-    raise RuntimeError("You need to write this part!")
+    frequency = dict()
+    for c in train:
+        l = []
+        for ll in train[c]:
+            l += ll
+        frequency[c] = Counter(l)
+
+    return frequency
 
 def remove_stopwords(frequency):
     '''
@@ -34,7 +41,15 @@ def remove_stopwords(frequency):
         - nonstop[y][x] = frequency of word x in texts of class y,
           but only if x is not a stopword.
     '''
-    raise RuntimeError("You need to write this part!")
+    nonstop = dict()
+    for c in frequency:
+        nonstop[c] = Counter(frequency[c])
+    for c in nonstop:
+        for stopword in stopwords:
+            if stopword in nonstop[c]:
+                del nonstop[c][stopword]
+
+    return nonstop
 
 def laplace_smoothing(nonstop, smoothness):
     '''
@@ -52,7 +67,18 @@ def laplace_smoothing(nonstop, smoothness):
     Be careful that your vocabulary only counts words that occurred at least once
     in the training data for class y.
     '''
-    raise RuntimeError("You need to write this part!")
+    k = smoothness
+
+    likelihood = dict()
+    for c in nonstop:
+        total_tokens = sum(nonstop[c].values())  # total number of tokens of any word in class c
+        d = dict()
+        for word in nonstop[c]:
+            d[word] = (nonstop[c][word] + k) / (total_tokens + k*(len(nonstop[c])+1))
+        d['OOV'] = k / (total_tokens + k*(len(nonstop[c])+1))
+        likelihood[c] = d
+
+    return likelihood
 
 def naive_bayes(texts, likelihood, prior):
     '''
@@ -68,7 +94,34 @@ def naive_bayes(texts, likelihood, prior):
     hypotheses (list)
         - hypotheses[i] = class label for the i'th text
     '''
-    raise RuntimeError("You need to write this part!")
+    hypotheses = []
+    for i in range(len(texts)):
+        prob_pos = prior
+        prob_neg = 1 - prior
+        for word in texts[i]:
+            if word in stopwords:
+                continue
+            if word in likelihood['pos']:
+                prob_pos *= likelihood['pos'][word]
+            else:
+                prob_pos *= likelihood['pos']['OOV']
+            if word in likelihood['neg']:
+                prob_neg *= likelihood['neg'][word]
+            else:
+                prob_neg *= likelihood['neg']['OOV']
+
+            if prob_neg < 1e-10 or prob_pos < 1e-10:
+                prob_neg *= 1e9
+                prob_pos *= 1e9
+
+        if prob_pos > prob_neg:
+            hypotheses.append('pos')
+        elif prob_pos < prob_neg:
+            hypotheses.append('neg')
+        else:
+            hypotheses.append('undecided')
+
+    return hypotheses
 
 def optimize_hyperparameters(texts, labels, nonstop, priors, smoothnesses):
     '''
