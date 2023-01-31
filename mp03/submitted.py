@@ -7,6 +7,7 @@ function's docstring.
 '''
 import numpy as np
 
+
 def k_nearest_neighbors(image, train_images, train_labels, k):
     '''
     Parameters:
@@ -20,7 +21,12 @@ def k_nearest_neighbors(image, train_images, train_labels, k):
     labels - a list of k labels corresponding to the k images
     '''
 
-    raise RuntimeError('You need to write this part!')
+    indices = list(range(len(train_images)))
+    distances = []
+    for train_img in train_images:
+        distances.append(np.linalg.norm(image - train_img))
+    indices = sorted(indices, key=lambda a: distances[a])
+    return train_images[indices[:k]], train_labels[indices[:k]]
 
 
 def classify_devset(dev_images, train_images, train_labels, k):
@@ -35,8 +41,19 @@ def classify_devset(dev_images, train_images, train_labels, k):
     hypotheses (list) -one majority-vote labels for each of the M dev images
     scores (list) -one majority-vote scores for each of the M dev images
     '''
-    
-    raise RuntimeError('You need to write this part!')
+
+    hypotheses, scores = [], []
+    for image in dev_images:
+        _, labels = k_nearest_neighbors(image, train_images, train_labels, k)
+        score = len(labels[labels==True])
+        if score > k/2:
+            hypotheses.append(1)
+        else:
+            hypotheses.append(0)
+        if score == 0:
+            score = 2
+        scores.append(score)
+    return hypotheses, scores
 
 
 def confusion_matrix(hypotheses, references):
@@ -53,4 +70,13 @@ def confusion_matrix(hypotheses, references):
     f1(float) - the computed f1 score from the matrix
     '''
 
-    raise RuntimeError('You need to write this part!')
+    matrix = np.array([[0 for _ in range(2)] for _ in range(2)])
+    for m in range(len(references)):
+        matrix[int(hypotheses[m])][int(references[m])] += 1
+
+    accuracy = (matrix[0][0] + matrix[1][1])/ np.sum(matrix)
+    precision = matrix[1][1] / (matrix[0][1] + matrix[1][1])
+    recall = matrix[1][1] / (matrix[1][1] + matrix[1][0])
+    f1 = 2 / (1/recall + 1/precision)
+    return matrix, accuracy, f1
+
