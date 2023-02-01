@@ -72,7 +72,7 @@ def confusion_matrix(hypotheses, references):
 
     matrix = np.array([[0 for _ in range(2)] for _ in range(2)])
     for m in range(len(references)):
-        matrix[int(hypotheses[m])][int(references[m])] += 1
+        matrix[int(references[m])][int(hypotheses[m])] += 1
 
     accuracy = (matrix[0][0] + matrix[1][1])/ np.sum(matrix)
     precision = matrix[1][1] / (matrix[0][1] + matrix[1][1])
