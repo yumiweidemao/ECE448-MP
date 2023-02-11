@@ -25,7 +25,13 @@ class NeuralNet(torch.nn.Module):
         super().__init__()
         ################# Your Code Starts Here #################
 
-        raise NotImplementedError("You need to write this part!")
+        self.net = torch.nn.Sequential(
+            torch.nn.Linear(2883, 64),
+            torch.nn.ReLU(),
+            torch.nn.Linear(64, 128),
+            torch.nn.ReLU(),
+            torch.nn.Linear(128, 5),
+        )
         ################## Your Code Ends here ##################
 
     def forward(self, x):
@@ -39,9 +45,9 @@ class NeuralNet(torch.nn.Module):
             y:      an (N, output_size) tensor of output from the network
         """
         ################# Your Code Starts Here #################
+        y = self.net(x)
 
         return y
-        raise NotImplementedError("You need to write this part!")
         ################## Your Code Ends here ##################
 
 
@@ -76,9 +82,8 @@ def fit(train_dataloader, test_dataloader, epochs):
     Please select an appropriate loss function from PyTorch torch.nn module.
     Please select an appropriate optimizer from PyTorch torch.optim module.
     """
-    loss_fn = None
-    optimizer = None
-    raise NotImplementedError("You need to write this part!")
+    loss_fn = torch.nn.CrossEntropyLoss()
+    optimizer = torch.optim.SGD(params=model.parameters(), lr=0.01, weight_decay=0.0001)
     ################## Your Code Ends here ##################
 
 
@@ -115,7 +120,12 @@ def train(train_dataloader, model, loss_fn, optimizer):
 
     ################# Your Code Starts Here #################
 
-    raise NotImplementedError("You need to write this part!")
+    for features, labels in train_dataloader:
+        labels_pred = model.forward(features)
+        loss = loss_fn(labels_pred, labels)
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
     ################## Your Code Ends here ##################
 
 
