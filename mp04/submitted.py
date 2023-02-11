@@ -25,12 +25,18 @@ class NeuralNet(torch.nn.Module):
         super().__init__()
         ################# Your Code Starts Here #################
 
-        self.net = torch.nn.Sequential(
-            torch.nn.Linear(2883, 64),
+        self.conv_net = torch.nn.Sequential(
+            torch.nn.Conv2d(3, 16, 4),
             torch.nn.ReLU(),
-            torch.nn.Linear(64, 128),
+            torch.nn.MaxPool2d(4),
+        )
+
+        self.lin_net = torch.nn.Sequential(
+            torch.nn.Linear(16 * 7 * 7, 120),  # original image size 3*31*31, after conv: 16*28*28, after pooling: 16*7*7
             torch.nn.ReLU(),
-            torch.nn.Linear(128, 5),
+            torch.nn.Linear(120, 84),
+            torch.nn.ReLU(),
+            torch.nn.Linear(84, 5)
         )
         ################## Your Code Ends here ##################
 
@@ -45,9 +51,12 @@ class NeuralNet(torch.nn.Module):
             y:      an (N, output_size) tensor of output from the network
         """
         ################# Your Code Starts Here #################
-        y = self.net(x)
+        x = x.reshape(x.shape[0], 3, 31, 31)
+        x = self.conv_net(x)
+        x = torch.flatten(x, 1)     # flatten all dimensions except batch
+        x = self.lin_net(x)
 
-        return y
+        return x
         ################## Your Code Ends here ##################
 
 
@@ -83,7 +92,7 @@ def fit(train_dataloader, test_dataloader, epochs):
     Please select an appropriate optimizer from PyTorch torch.optim module.
     """
     loss_fn = torch.nn.CrossEntropyLoss()
-    optimizer = torch.optim.SGD(params=model.parameters(), lr=0.01, weight_decay=0.0001)
+    optimizer = torch.optim.SGD(params=model.parameters(), lr=0.012, weight_decay=0.001)
     ################## Your Code Ends here ##################
 
 
@@ -148,5 +157,11 @@ def test(test_dataloader, model, loss_fn):
         loss_fn:            loss function
     """
 
-    # test_loss = something
+    test_loss = 0
     # print("Test loss:", test_loss)
+    for features, labels in test_dataloader:
+        with torch.no_grad():
+            pred = model.forward(features)
+            loss = loss_fn(pred, labels)
+            test_loss += loss
+    print("Test loss:", test_loss.item())
