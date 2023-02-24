@@ -17,6 +17,7 @@ files and classes when code is run, so be careful to not modify anything else.
 # to the positions of the path taken by your search algorithm.
 # maze is a Maze object based on the maze from the file specified by input filename
 # searchMethod is the search method specified by --method flag (bfs,dfs,astar,astar_multi)
+import queue
 
 def bfs(maze):
     """
@@ -26,9 +27,34 @@ def bfs(maze):
 
     @return path: a list of tuples containing the coordinates of each state in the computed path
     """
-    #TODO: Implement bfs function
+    if len(maze.waypoints) > 1:
+        print("BFS can only run on single waypoint")
+        return []
 
-    return []
+    path = []
+    parent = dict()
+    visited = set()
+    q = queue.Queue()
+    q.put(maze.start)
+    visited.add(maze.start)
+    parent[maze.start] = None
+    while not q.empty():
+        current = q.get()
+        if current == maze.waypoints[0]:
+            break
+        for neighbor in maze.neighbors(current[0], current[1]):
+            if neighbor not in visited:
+                parent[neighbor] = current
+                q.put(neighbor)
+                visited.add(neighbor)
+
+    x = maze.waypoints[0]
+    while x is not None:
+        path.append(x)
+        x = parent[x]
+
+    path.reverse()
+    return path
 
 def astar_single(maze):
     """
