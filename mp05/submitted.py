@@ -101,5 +101,116 @@ def astar_multiple(maze):
 
     @return path: a list of tuples containing the coordinates of each state in the computed path
     """
+    path = [maze.start]
+    waypoints = list(maze.waypoints)
+    pq = queue.PriorityQueue()
+    parent = dict()
+    parent[maze.start] = None
+    visited = set()
 
-    return []
+    h = lambda a : (nearest_waypoint_dist(a, waypoints) + MST_length(waypoints)) # heuristic
+
+    start = (h(maze.start), maze.start, 0)
+    pq.put(start)
+    visited.add(maze.start)
+
+    while not pq.empty():
+        curr = pq.get()
+        if curr[1] in waypoints:
+            waypoints.remove(curr[1])
+            visited = set()
+            visited.add(curr[1])
+            subpath = []
+            x = curr[1]
+            while x is not None:
+                subpath.append(x)
+                x = parent[x]
+            subpath.reverse()
+            path += subpath[1:]
+            parent = dict()
+            parent[curr[1]] = None
+            pq = queue.PriorityQueue()
+        if not waypoints:
+            break
+        for neighbor in maze.neighbors(curr[1][0], curr[1][1]):
+            if neighbor in visited:
+                continue
+            parent[neighbor] = curr[1]
+            pq.put((h(neighbor)+curr[2]+1, neighbor, curr[2]+1))
+            visited.add(neighbor)
+
+    return path
+
+
+def md(a, b):
+    # manhattan distance between a and b
+    return abs(a[0]-b[0]) + abs(a[1]-b[1])
+
+
+def nearest_waypoint_dist(current, waypoints):
+    # return the nearest waypoint distance
+    min_d = 999
+    for i in range(len(waypoints)):
+        d = md(current, waypoints[i])
+        if d < min_d:
+            min_d = d
+    return min_d
+
+
+def waypoints2graph(waypoints):
+    # return a graph represented by a list of edges, each edge is a tuple
+    # (length, (a, b))
+    edges = []
+    for i in range(len(waypoints)):
+        for j in range(i+1, len(waypoints)):
+            edges.append((md(waypoints[i], waypoints[j]), (i, j)))
+    return edges
+
+
+def MST_length(waypoints):
+    # return the length of the MST of a graph using Kruskal's algorithm
+    # return -1 if no MST possible
+    class DisjointSet:
+        def __init__(self, n):
+            self.parent = list(range(n))
+
+        def find(self, x):
+            if x == self.parent[x]:
+                return x
+            return self.find(self.parent[x])
+
+        def union(self, x, y):
+            self.parent[x] = y
+
+        def connected(self):
+            x = self.find(0)
+            for i in range(1, len(self.parent)):
+                if self.find(i) != x:
+                    return False
+            return True
+
+    ds = DisjointSet(len(waypoints))
+    edges = waypoints2graph(waypoints)
+    pq = queue.PriorityQueue()
+    length = 0
+
+    for edge in edges:
+        pq.put(edge)
+    while not pq.empty():
+        curr = pq.get()
+        a, b = curr[1]
+        if ds.find(a) != ds.find(b):
+            ds.union(a, b)
+            length += curr[0]
+        if ds.connected():
+            return length
+
+    return -1
+
+def main():
+    # add some tests here
+    waypoints = ((1, 1), (2, 2), (3, 3), (2, 5), (3, 6))
+    print("MST length =", MST_length(waypoints))
+
+if __name__ == "__main__":
+    main()
