@@ -64,9 +64,32 @@ def astar_single(maze):
 
     @return path: a list of tuples containing the coordinates of each state in the computed path
     """
-    #TODO: Implement astar_single
+    pq = queue.PriorityQueue()
+    path = []
+    b = maze.waypoints[0]
+    h = lambda a : abs(a[0] - b[0]) + abs(a[1] - b[1])
+    visited = set()
+    parent = dict()
+    start = (h(maze.start), maze.start, 0)  # (h, indices, g)
+    parent[maze.start] = None
+    visited.add(maze.start)
+    pq.put(start)
+    while not pq.empty():
+        curr = pq.get()
+        if curr[1] == b:
+            break
+        for neighbor in maze.neighbors(curr[1][0], curr[1][1]):
+            if neighbor not in visited:
+                visited.add(neighbor)
+                parent[neighbor] = curr[1]
+                pq.put((h(neighbor)+curr[2]+1, neighbor, curr[2]+1))
 
-    return []
+    while b is not None:
+        path.append(b)
+        b = parent[b]
+
+    path.reverse()
+    return path
 
 # This function is for Extra Credits, please begin this part after finishing previous two functions
 def astar_multiple(maze):
