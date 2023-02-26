@@ -108,7 +108,7 @@ def astar_multiple(maze):
     parent[maze.start] = None
     visited = set()
 
-    h = lambda a : (nearest_waypoint_dist(a, waypoints) + MST_length(waypoints)) # heuristic
+    h = lambda a : (nearest_waypoint_dist(a, waypoints) + MST_length(waypoints, a)) # heuristic
 
     start = (h(maze.start), maze.start, 0)
     pq.put(start)
@@ -167,6 +167,9 @@ def waypoints2graph(waypoints):
     return edges
 
 
+"""
+This doesn't work because Kruskal's algorithm cannot generate a MST given a starting vertex.
+
 def MST_length(waypoints):
     # return the length of the MST of a graph using Kruskal's algorithm
     # return -1 if no MST possible
@@ -206,11 +209,65 @@ def MST_length(waypoints):
             return length
 
     return -1
+"""
+def MST_length(waypoints, a):
+    # return the length of the minimum spanning tree given a.
+
+    # find the nearest vertices of a in waypoints
+    min_d = 999
+    vertices = []
+    for i in range(len(waypoints)):
+        d = md(a, waypoints[i])
+        if d < min_d:
+            min_d = d
+            vertices = [i]
+        elif d == min_d:
+            vertices.append(i)
+
+    edges = waypoints2graph(waypoints)
+    min_weight = min_spanning_tree_weight(edges, vertices)
+
+    return min_weight
+
+def min_spanning_tree_weight(edges, s):
+    if not edges:
+        return 0
+
+    adj_list = {}
+    for weight, (a, b) in edges:
+        if a not in adj_list:
+            adj_list[a] = []
+        if b not in adj_list:
+            adj_list[b] = []
+        adj_list[a].append((b, weight))
+        adj_list[b].append((a, weight))
+
+    min_weight = float('inf')
+
+    for start_vertex in s:
+        visited = {start_vertex}
+        pq = queue.PriorityQueue()
+        for neighbor, neighbor_weight in adj_list[start_vertex]:
+            pq.put((neighbor_weight, neighbor))
+        while not pq.empty():
+            weight, vertex = pq.get()
+            if vertex in visited:
+                continue
+            visited.add(vertex)
+            if len(visited) == len(adj_list):
+                tree_weight = sum(edge_weight for _, edge_weight in pq.queue)
+                min_weight = min(min_weight, tree_weight)
+                break
+            for neighbor, neighbor_weight in adj_list[vertex]:
+                if neighbor not in visited:
+                    pq.put((neighbor_weight, neighbor))
+
+    return min_weight
 
 def main():
     # add some tests here
     waypoints = ((1, 1), (2, 2), (3, 3), (2, 5), (3, 6))
-    print("MST length =", MST_length(waypoints))
+    print("MST length =", MST_length(waypoints, (1, 2)))
 
 if __name__ == "__main__":
     main()
