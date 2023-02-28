@@ -180,7 +180,7 @@ def MST_length(waypoints):
             return self.find(self.parent[x])
 
         def union(self, x, y):
-            self.parent[x] = y
+            self.parent[self.find(x)] = self.find(y)
 
         def connected(self):
             x = self.find(0)
@@ -208,12 +208,12 @@ def MST_length(waypoints):
         if ds.connected():
             return length
 
-    return -1
+    return 0
 
 def main():
     # add some tests here
-    waypoints = ((1, 1), (2, 2), (3, 3), (2, 5), (3, 6))
-    print("MST length =", MST_length(waypoints, (1, 2)))
+    waypoints = ((1, 6), (1, 10), (1, 14), (1, 18), (1, 22), (1, 26), (5, 4))
+    print("MST length =", MST_length(waypoints))
 
 if __name__ == "__main__":
     main()
