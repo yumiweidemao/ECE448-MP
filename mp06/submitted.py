@@ -56,7 +56,35 @@ def minimax(side, board, flags, depth):
       flags (list of flags): list of flags, used by generateMoves and makeMove
       depth (int >=0): depth of the search (number of moves)
     '''
-    raise NotImplementedError("you need to write this!")
+    if depth == 0:
+        return chess.lib.heuristics.evaluate(board), [], dict()
+
+    move_list, move_tree = list(), dict()
+    min_move, max_move = None, None
+    min_movelist, max_movelist = [], []
+    min_score, max_score = float("inf"), -float("inf")
+    for move in generateMoves(side, board, flags):
+        newside, newboard, newflags = chess.lib.makeMove(side, board, move[0], move[1], flags, move[2])
+        score, next_movelist, next_movetree = minimax(newside, newboard, newflags, depth - 1)
+        if score < min_score:
+            min_score = score
+            min_move = move
+            min_movelist = next_movelist
+        if score > max_score:
+            max_score = score
+            max_move = move
+            max_movelist = next_movelist
+        move_tree[encode(*move)] = next_movetree
+
+    if side:
+        # next player is MIN, choose min_move
+        min_movelist = [min_move] + min_movelist
+        return min_score, min_movelist, move_tree
+    else:
+        # next player is MAX, choose max_move
+        max_movelist = [max_move] + max_movelist
+        return max_score, max_movelist, move_tree
+
 
 def alphabeta(side, board, flags, depth, alpha=-math.inf, beta=math.inf):
     '''
@@ -71,7 +99,40 @@ def alphabeta(side, board, flags, depth, alpha=-math.inf, beta=math.inf):
       flags (list of flags): list of flags, used by generateMoves and makeMove
       depth (int >=0): depth of the search (number of moves)
     '''
-    raise NotImplementedError("you need to write this!")
+    if depth == 0:
+        return chess.lib.heuristics.evaluate(board), [], dict()
+
+    move_list, move_tree = list(), dict()
+    min_move, max_move = None, None
+    min_movelist, max_movelist = [], []
+    min_score, max_score = float("inf"), -float("inf")
+    for move in generateMoves(side, board, flags):
+        newside, newboard, newflags = chess.lib.makeMove(side, board, move[0], move[1], flags, move[2])
+        score, next_movelist, next_movetree = alphabeta(newside, newboard, newflags, depth - 1, alpha, beta)
+        if score < min_score:
+            min_score = score
+            min_move = move
+            min_movelist = next_movelist
+        if score > max_score:
+            max_score = score
+            max_move = move
+            max_movelist = next_movelist
+        if side:
+            beta = min(beta, min_score)
+        else:
+            alpha = max(alpha, max_score)
+        move_tree[encode(*move)] = next_movetree
+        if alpha >= beta:
+            break
+
+    if side:
+        # next player is MIN, choose min_move
+        min_movelist = [min_move] + min_movelist
+        return min_score, min_movelist, move_tree
+    else:
+        # next player is MAX, choose max_move
+        max_movelist = [max_move] + max_movelist
+        return max_score, max_movelist, move_tree
     
 
 def stochastic(side, board, flags, depth, breadth, chooser):
@@ -89,4 +150,16 @@ def stochastic(side, board, flags, depth, breadth, chooser):
       breadth: number of different paths 
       chooser: a function similar to random.choice, but during autograding, might not be random.
     '''
-    raise NotImplementedError("you need to write this!")
+
+def test():
+    # some tests
+    side, board, flags = chess.lib.convertMoves("")
+    value, move_list, move_tree = alphabeta(side, board, flags, 2)
+    print(value)
+    for move in move_list:
+        print(encode(*move), end=" ")
+    print()
+    print(move_tree)
+
+if __name__ == "__main__":
+    test()
