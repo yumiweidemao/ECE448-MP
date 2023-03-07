@@ -22,8 +22,43 @@ def standardize_variables(nonstandard_rules):
     @return variables (list) - a list of the variable names that were created.
         This list should contain only the variables that were used in rules.
     '''
-    raise RuntimeError("You need to write this part!")
+    variable_count = 0
+    variables = []
+    standardized_rules = dict()
+    for id, rule in nonstandard_rules.items():
+        if "something" not in rule['consequent']:
+            no_something = True
+            for antecedent in rule['antecedents']:
+                if "something" in antecedent:
+                    no_something = False
+            if no_something:
+                standardized_rules[id] = copy.deepcopy(rule)
+                continue
+        variable_count += 1
+        new_rule = dict()
+        new_rule['text'] = rule['text']
+        new_antecedents = copy.deepcopy(rule['antecedents'])
+        new_consequent = rule['consequent'][:]
+        for i in range(len(new_antecedents)):
+            for j in range(len(new_antecedents[i])):
+                if new_antecedents[i][j] == "something":
+                    new_antecedents[i][j] = hex(variable_count)
+        for i in range(len(new_consequent)):
+            if new_consequent[i] == "something":
+                new_consequent[i] = hex(variable_count)
+        variables.append(hex(variable_count))
+        new_rule['antecedents'] = new_antecedents
+        new_rule['consequent'] = new_consequent
+        standardized_rules[id] = new_rule
+
     return standardized_rules, variables
+
+
+def find(x, subs):
+    if x not in subs:
+        return x
+    return find(subs[x], subs)
+
 
 def unify(query, datum, variables):
     '''
@@ -73,7 +108,27 @@ def unify(query, datum, variables):
     unify([...,True],[...,False],[...]) should always return None, None, regardless of the 
       rest of the contents of the query or datum.
     '''
-    raise RuntimeError("You need to write this part!")
+
+    if query[-1] == True and datum[-1] == False:
+        return None, None
+    if len(query) != len(datum):
+        return None, None
+
+    unification = []
+    subs = dict()
+
+    for i in range(len(query)):
+        if query[i] in variables and datum[i] in variables:
+            subs[find(query[i], subs)] = datum[i]
+        elif query[i] in variables:
+            subs[find(query[i], subs)] = datum[i]
+        elif datum[i] in variables:
+            subs[find(datum[i], subs)] = query[i]
+        elif query[i] != datum[i]:
+            return None, None
+    for word in query:
+        unification.append(find(word, subs))
+
     return unification, subs
 
 def apply(rule, goals, variables):
@@ -138,8 +193,31 @@ def apply(rule, goals, variables):
         ['bald eagle','is','hungry',False]
       ]
     '''
-    raise RuntimeError("You need to write this part!")
+    applications, goalsets = [], []
+    for goal in goals:
+        newgoal = list(goals[:])
+        application = dict()
+        application['antecedents'] = []
+        #application['text'] = rule['text']
+        _, subs = unify(goal, rule['consequent'], variables)
+        if subs is None:
+            continue
+        newgoal.remove(goal)
+        for antecedent in rule['antecedents']:
+            antecedent_copy = antecedent[:]
+            for i in range(len(antecedent_copy)):
+                antecedent_copy[i] = find(antecedent_copy[i], subs)
+            newgoal.append(tuple(antecedent_copy))
+            application['antecedents'].append(antecedent_copy)
+        consequent_copy = rule['consequent'][:]
+        for i in range(len(consequent_copy)):
+            consequent_copy[i] = find(consequent_copy[i], subs)
+        application['consequent'] = consequent_copy
+        applications.append(application)
+        goalsets.append(tuple(newgoal))
+
     return applications, goalsets
+
 
 def backward_chain(query, rules, variables):
     '''
@@ -150,5 +228,38 @@ def backward_chain(query, rules, variables):
       that, when read in sequence, conclude by proving the truth of the query.
       If no proof of the query was found, you should return proof=None.
     '''
-    raise RuntimeError("You need to write this part!")
+    proof = []
+    q = queue.Queue()
+    q.put((tuple(query),))
+    parent = dict()
+    app = dict()
+    parent[(tuple(query),)] = None
+    while q.qsize() > 0:
+        goalset = q.get()
+        for rule in rules.values():
+            applications, newgoals = apply(rule, goalset, variables)
+            for newgoal, application in zip(newgoals, applications):
+                application['text'] = rule['text']
+                if not newgoal:
+                    parent["END"] = tuple(goalset)
+                    app["END"] = application
+                    break
+                q.put(tuple(newgoal))
+                parent[tuple(newgoal)] = tuple(goalset)
+                app[tuple(newgoal)] = application
+    if "END" not in parent:
+        return None
+
+    x = "END"
+    while x != (tuple(query),):
+        proof.append(app[x])
+        x = parent[x]
     return proof
+
+def test():
+    # some tests
+    standardized_rules, variables = standardize_variables({'triple1': {'text': 'The bald eagle chases the bear.', 'antecedents': [], 'consequent': ['bald eagle', 'chases', 'bear', True]}, 'triple2': {'text': 'The bald eagle is red.', 'antecedents': [], 'consequent': ['bald eagle', 'is', 'red', True]}, 'triple3': {'text': 'The bear visits the bald eagle.', 'antecedents': [], 'consequent': ['bear', 'visits', 'bald eagle', True]}, 'rule1': {'text': 'If something visits the bear then the bear sees the bald eagle.', 'antecedents': [['something', 'visits', 'bear', True]], 'consequent': ['bear', 'sees', 'bald eagle', True]}, 'rule2': {'text': 'If something sees the bear then the bear chases the bald eagle.', 'antecedents': [['something', 'sees', 'bear', True]], 'consequent': ['bear', 'chases', 'bald eagle', True]}, 'rule3': {'text': 'If something sees the bald eagle then the bald eagle sees the bear.', 'antecedents': [['something', 'sees', 'bald eagle', True]], 'consequent': ['bald eagle', 'sees', 'bear', True]}, 'rule4': {'text': 'If something visits the bald eagle then the bald eagle sees the bear.', 'antecedents': [['something', 'visits', 'bald eagle', True]], 'consequent': ['bald eagle', 'sees', 'bear', True]}, 'rule5': {'text': 'If something sees the bald eagle then the bald eagle chases the bear.', 'antecedents': [['something', 'sees', 'bald eagle', True]], 'consequent': ['bald eagle', 'chases', 'bear', True]}, 'rule6': {'text': 'If something sees the bald eagle and the bald eagle sees the bear then the bear chases the bald eagle.', 'antecedents': [['something', 'sees', 'bald eagle', True], ['bald eagle', 'sees', 'bear', True]], 'consequent': ['bear', 'chases', 'bald eagle', True]}})
+    print(variables)
+
+if __name__ == "__main__":
+    test()
