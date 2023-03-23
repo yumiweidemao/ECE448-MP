@@ -25,7 +25,42 @@ def baseline(train, test):
     output: list of sentences, each sentence is a list of (word,tag) pairs.
             E.g., [[(word1, tag1), (word2, tag2)], [(word3, tag3), (word4, tag4)]]
     '''
-    raise NotImplementedError("You need to write this part!")
+    d = dict()
+    tag_d = dict()
+    for sentence in train:
+        for word, tag in sentence:
+            if word not in d:
+                d[word] = dict()
+            if tag not in d[word]:
+                d[word][tag] = 0
+            d[word][tag] += 1
+    for word in d.keys():
+        counter = d[word]
+        max_tag, max_count = None, 0
+        for tag in counter.keys():
+            if counter[tag] > max_count:
+                max_count = counter[tag]
+                max_tag = tag
+            if tag not in tag_d:
+                tag_d[tag] = 0
+            tag_d[tag] += counter[tag]
+        d[word] = max_tag
+    max_frequency, most_frequent_tag = 0, None
+    for tag in tag_d:
+        if tag_d[tag] > max_frequency:
+            max_frequency = tag_d[tag]
+            most_frequent_tag = tag
+
+    prediction = []
+    for sentence in test:
+        new_sentence = []
+        for word in sentence:
+            if word not in d:
+                new_sentence.append((word, most_frequent_tag))
+            else:
+                new_sentence.append((word, d[word]))
+        prediction.append(new_sentence)
+    return prediction
 
 
 def viterbi(train, test):
