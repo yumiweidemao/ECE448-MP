@@ -38,13 +38,22 @@ class CIFAR10(Dataset):
         Initialize your dataset here. Note that transform and target_transform
         correspond to your data transformations for train and test respectively.
         """
-        raise NotImplementedError("You need to write this part!")
+        self.images = []
+        self.labels = []
+        for file in data_files:
+            d = unpickle(file)
+            self.images += d[b'data']
+            self.labels += d[b'labels']
+        for i in range(len(self.images)):
+            self.images[i] = np.transpose(np.reshape(self.images[i], (3, 32, 32)), (1, 2, 0))
+        self.transform = transform
+        self.target_transform = target_transform
 
     def __len__(self):
         """
         Return the length of your dataset here.
         """
-        raise NotImplementedError("You need to write this part!")
+        return len(self.images)
 
     def __getitem__(self, idx):
         """
@@ -56,7 +65,13 @@ class CIFAR10(Dataset):
         Outputs:
             y:      a tuple (image, label), although this is arbitrary so you can use whatever you would like.
         """
-        raise NotImplementedError("You need to write this part!")
+        image = self.images[idx]
+        label = self.labels[idx]
+        if self.transform:
+            image = self.transform(image)
+        if self.target_transform:
+            label = self.target_transform(label)
+        return image, label
     
 
 def get_preprocess_transform(mode):
@@ -78,7 +93,8 @@ def build_dataset(data_files, transform=None):
     Outputs:
         dataset:      a PyTorch dataset object to be used in training/testing
     """
-    raise NotImplementedError("You need to write this part!")
+    dataset = CIFAR10(data_files=data_files, transform=transform)
+    return dataset
 
 
 """
@@ -96,7 +112,8 @@ def build_dataloader(dataset, loader_params):
     Outputs:
         dataloader:      a PyTorch dataloader object to be used in training/testing
     """
-    raise NotImplementedError("You need to write this part!")
+    dataloader = DataLoader(dataset, **loader_params)
+    return dataloader
 
 
 """
@@ -114,8 +131,8 @@ class FinetuneNet(torch.nn.Module):
         """
         super().__init__()
         ################# Your Code Starts Here #################
-
-        raise NotImplementedError("You need to write this part!")
+        self.model = resnet18()
+        self.model.load_state_dict(torch.load('resnet18.pt'))
         ################## Your Code Ends here ##################
 
     def forward(self, x):
@@ -129,8 +146,7 @@ class FinetuneNet(torch.nn.Module):
             y:      an (N, output_size) tensor of output from the network
         """
         ################# Your Code Starts Here #################
-
-        raise NotImplementedError("You need to write this part!")
+        return self.model(x)
         ################## Your Code Ends here ##################
 
 
@@ -162,7 +178,11 @@ def build_optimizer(optim_type, model_params, hparams):
     Outputs:
         optimizer:       a PyTorch optimizer object to be used in training
     """
-    raise NotImplementedError("You need to write this part!")
+    if optim_type == "Adam":
+        optimizer = torch.optim.Adam(params=model_params, **hparams)
+    else:
+        optimizer = torch.optim.SGD(params=model_params, **hparams)
+    return optimizer
 
 
 """
@@ -187,8 +207,12 @@ def train(train_dataloader, model, loss_fn, optimizer):
     """
 
     ################# Your Code Starts Here #################
-
-    raise NotImplementedError("You need to write this part!")
+    for images, labels in train_dataloader:
+        labels_pred = model.forward(images)
+        loss = loss_fn(labels_pred, labels)
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
     ################## Your Code Ends here ##################
 
 
@@ -216,10 +240,16 @@ def test(test_dataloader, model):
     Outputs:
         test_acc:           the output test accuracy (0.0 <= acc <= 1.0)
     """
-
-    # test_loss = something
-    # print("Test loss:", test_loss)
-    raise NotImplementedError("You need to write this part!")
+    total = 0
+    accurate = 0
+    for features, labels in test_dataloader:
+        with torch.no_grad():
+            pred = model.forward(features)
+            for i in range(len(pred)):
+                total += 1
+                if pred[i] == labels[i]:
+                    accurate += 1
+    return accurate / total
 
 """
 7. Full model training and testing
@@ -235,5 +265,39 @@ def run_model():
     Outputs:
         model:              trained model
     """
-    raise NotImplementedError("You need to write this part!")
-    
+    data_files = [
+        "cifar10_batches/data_batch_1",
+        "cifar10_batches/data_batch_2",
+        "cifar10_batches/data_batch_3",
+        "cifar10_batches/data_batch_4",
+        "cifar10_batches/data_batch_5"
+    ]
+
+    dataset = build_dataset(data_files, transform=transforms.ToTensor())
+
+    loader_params = {
+        'batch_size': 10,
+        'shuffle': True
+    }
+    dataloader = build_dataloader(dataset, loader_params=loader_params)
+
+    model = build_model()
+    hparams_optim = {
+        'lr': 0.001,
+        'weight_decay': 0
+    }
+    optimizer = build_optimizer("Adam", model.parameters(), hparams=hparams_optim)
+    loss_fn = torch.nn.CrossEntropyLoss()
+    train(dataloader, model, loss_fn, optimizer)
+
+    # following are for test
+    test_dataset = build_dataset(["cifar10_batches"])
+    test_dataloader = build_dataloader(test_dataset, loader_params=loader_params)
+    test_acc = test(test_dataloader, model)
+    print("Test accuracy: ", test_acc)
+
+    return model
+
+
+if __name__ == "__main__":
+    run_model()
