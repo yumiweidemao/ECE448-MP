@@ -131,6 +131,7 @@ class FinetuneNet(torch.nn.Module):
         """
         super().__init__()
         ################# Your Code Starts Here #################
+        # load pretrained weights
         self.model = resnet18()
         self.model.load_state_dict(torch.load('resnet18.pt'))
         ################## Your Code Ends here ##################
@@ -207,7 +208,12 @@ def train(train_dataloader, model, loss_fn, optimizer):
     """
 
     ################# Your Code Starts Here #################
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
+    model = model.to(device)
+
     for images, labels in train_dataloader:
+        images, labels = images.to(device), labels.to(device)
         labels_pred = model.forward(images)
         loss = loss_fn(labels_pred, labels)
         optimizer.zero_grad()
@@ -240,14 +246,19 @@ def test(test_dataloader, model):
     Outputs:
         test_acc:           the output test accuracy (0.0 <= acc <= 1.0)
     """
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
+    model = model.to(device)
+
     total = 0
     accurate = 0
     for features, labels in test_dataloader:
         with torch.no_grad():
+            features, labels = features.to(device), labels.to(device)
             pred = model.forward(features)
             for i in range(len(pred)):
                 total += 1
-                if pred[i] == labels[i]:
+                if torch.argmax(pred[i]) == labels[i]:
                     accurate += 1
     return accurate / total
 
@@ -276,25 +287,26 @@ def run_model():
     dataset = build_dataset(data_files, transform=transforms.ToTensor())
 
     loader_params = {
-        'batch_size': 10,
+        'batch_size': 1000,
         'shuffle': True
     }
     dataloader = build_dataloader(dataset, loader_params=loader_params)
 
     model = build_model()
     hparams_optim = {
-        'lr': 0.001,
+        'lr': 0.0001,
         'weight_decay': 0
     }
     optimizer = build_optimizer("Adam", model.parameters(), hparams=hparams_optim)
     loss_fn = torch.nn.CrossEntropyLoss()
     train(dataloader, model, loss_fn, optimizer)
 
-    # following are for test
-    test_dataset = build_dataset(["cifar10_batches"])
+    """
+    test_dataset = build_dataset(["cifar10_batches/test_batch"], transform=transforms.ToTensor())
     test_dataloader = build_dataloader(test_dataset, loader_params=loader_params)
     test_acc = test(test_dataloader, model)
     print("Test accuracy: ", test_acc)
+    """
 
     return model
 
