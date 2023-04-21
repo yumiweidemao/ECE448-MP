@@ -46,8 +46,8 @@ class q_learner():
 
         totalNumOfStates = state_cardinality[0] * state_cardinality[1] * state_cardinality[2] * \
                            state_cardinality[3] * state_cardinality[4]
-        self.Q = np.zeros(shape=(totalNumOfStates*3))
-        self.N = np.zeros(shape=(totalNumOfStates*3))
+        self.Q = np.zeros(shape=(totalNumOfStates * 3))
+        self.N = np.zeros(shape=(totalNumOfStates * 3))
 
     def idx(self, state, action):
         # return the index to self.Q and self.N given a state and an action.
@@ -57,7 +57,7 @@ class q_learner():
                     state[2] * self.state_cardinality[3] * self.state_cardinality[4] + \
                     state[3] * self.state_cardinality[4] + state[4]
         idx_action = action + 1
-        return idx_state*3 + idx_action
+        return idx_state * 3 + idx_action
 
     def report_exploration_counts(self, state):
         '''
@@ -103,7 +103,7 @@ class q_learner():
         valid_actions = []
         for i in range(3):
             if action_counts[i] < self.nfirst:
-                valid_actions.append(i-1)
+                valid_actions.append(i - 1)
         if not valid_actions:
             return None
         choice = np.random.choice(valid_actions)
@@ -128,7 +128,6 @@ class q_learner():
         for action in [-1, 0, 1]:
             Q.append(self.Q[self.idx(state, action)])
         return Q
-
 
     def q_local(self, reward, newstate):
         '''
@@ -272,7 +271,24 @@ class deep_q():
         @return:
         None
         '''
-        raise RuntimeError('You need to write this!')
+        self.alpha = alpha
+        self.epsilon = epsilon
+        self.gamma = gamma
+        self.nfirst = nfirst
+
+        # A neural net to predict Q(s, a). Input size = 6; 5 for s, 1 for a.
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.model = torch.nn.Sequential(
+            torch.nn.Linear(6, 1024),
+            torch.nn.ReLU(),
+            torch.nn.Linear(1024, 512),
+            torch.nn.ReLU(),
+            torch.nn.Linear(512, 64),
+            torch.nn.ReLU(),
+            torch.nn.Linear(64, 1)
+        ).to(self.device)
+        self.loss_fn = torch.nn.MSELoss()
+        self.optimizer = torch.optim.Adam(params=self.model.parameters(), lr=1e-4)
 
     def act(self, state):
         '''
@@ -288,7 +304,19 @@ class deep_q():
         0 if the paddle should be stationary
         1 if the paddle should move downward
         '''
-        raise RuntimeError('You need to write this!')
+        if np.random.uniform(0, 1) < self.epsilon:
+            if self.epsilon > 0.03:
+                self.epsilon *= 0.99
+            return np.random.choice([-1, 0, 1])
+
+        with torch.no_grad():
+            action = torch.argmax(torch.Tensor([
+                self.model(torch.Tensor(state + [-1]).to(self.device)).item(),
+                self.model(torch.Tensor(state + [0]).to(self.device)).item(),
+                self.model(torch.Tensor(state + [1]).to(self.device)).item()
+            ])) - 1
+
+        return action.item()
 
     def learn(self, state, action, reward, newstate):
         '''
@@ -303,7 +331,16 @@ class deep_q():
         @return:
         None
         '''
-        raise RuntimeError('You need to write this!')
+        q_local = torch.Tensor([reward + self.gamma * max(
+            self.model(torch.Tensor(newstate + [-1]).to(self.device)).item(),
+            self.model(torch.Tensor(newstate + [0]).to(self.device)).item(),
+            self.model(torch.Tensor(newstate + [1]).to(self.device)).item()
+        )]).to(self.device)
+        q = self.model(torch.Tensor(state + [action]).to(self.device))
+        loss = self.alpha * self.loss_fn(q_local, q)
+        self.optimizer.zero_grad()
+        loss.backward()
+        self.optimizer.step()
 
     def save(self, filename):
         '''
@@ -316,9 +353,9 @@ class deep_q():
         @return:
         None
         '''
-        raise RuntimeError('You need to write this!')
+        torch.save(self.model.state_dict(), filename)
 
-    def load(self, filename):
+    def load(self, filename, train=False):
         '''
         Load your deep-Q model from a file.
         This should load from whatever file format your save function
@@ -329,4 +366,13 @@ class deep_q():
         @return:
         None
         '''
-        raise RuntimeError('You need to write this!')
+        self.model.load_state_dict(torch.load(filename))
+        if not train:
+            self.model.eval()
+
+    def report_q(self, state):
+        with torch.no_grad():
+            Q = [self.model(torch.Tensor(state + [-1]).to(self.device)).item(),
+                 self.model(torch.Tensor(state + [0]).to(self.device)).item(),
+                 self.model(torch.Tensor(state + [1]).to(self.device)).item()]
+        return Q
