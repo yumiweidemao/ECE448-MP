@@ -5,13 +5,13 @@ import numpy as np
 
 #state_quantization = [10,10,2,2,10]
 state_quantization = None
-q_learner = submitted.deep_q(0.05,0.05,0.99,5)
+q_learner = submitted.deep_q(alpha=0.5, epsilon=0.08, gamma=0.99, nfirst=5)
 
-q_learner.load('test_model.pkl', train=True)
+#q_learner.load('test_model.pkl', train=True)
 
 pong_game = pong.PongGame(learner=q_learner, visible=False, state_quantization=state_quantization)
 
-games = 20
+games = 500
 
 scores, q_achieved, q_states = pong_game.run(m_games=games, states=[])
 
@@ -28,3 +28,4 @@ ax[1].set_title('Game scores, average 10 consecutive games')
 ax[2].plot(np.arange(0,len(q_achieved)),q_achieved)
 ax[2].set_title('Q values of state achieved at each time')
 ax[2].set_ylabel('Game number')
+plt.savefig('test.jpg')

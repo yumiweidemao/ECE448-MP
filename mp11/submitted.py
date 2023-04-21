@@ -252,6 +252,51 @@ class q_learner():
         best_action, _ = self.exploit(state)
         return best_action
 
+class ShittyModel(nn.Module):
+    def __init__(self):
+        '''
+        A model containing three difference multiperceptrons for the three actions.
+        Different nets are used to account for the relationship between actions & states.
+        Have tried a single net with input size 6 (5 state + 1 action), doesn't work well.
+        '''
+        super(ShittyModel, self).__init__()
+
+        layer1_size = 512
+        layer2_size = 128
+        # neural net for action=-1
+        self.net1 = nn.Sequential(
+            nn.Linear(5, layer1_size),
+            nn.ReLU(),
+            nn.Linear(layer1_size, layer2_size),
+            nn.ReLU(),
+            nn.Linear(layer2_size, 1)
+        )
+        # neural net for action=0
+        self.net2 = nn.Sequential(
+            nn.Linear(5, layer1_size),
+            nn.ReLU(),
+            nn.Linear(layer1_size, layer2_size),
+            nn.ReLU(),
+            nn.Linear(layer2_size, 1)
+        )
+        # neural net for action=1
+        self.net3 = nn.Sequential(
+            nn.Linear(5, layer1_size),
+            nn.ReLU(),
+            nn.Linear(layer1_size, layer2_size),
+            nn.ReLU(),
+            nn.Linear(layer2_size, 1)
+        )
+
+    def forward(self, state, action):
+        if action == -1:
+            return self.net1(torch.Tensor(state))
+        if action == 0:
+            return self.net2(torch.Tensor(state))
+        if action == 1:
+            return self.net3(torch.Tensor(state))
+        return None
+
 
 class deep_q():
     def __init__(self, alpha, epsilon, gamma, nfirst):
@@ -276,19 +321,14 @@ class deep_q():
         self.gamma = gamma
         self.nfirst = nfirst
 
-        # A neural net to predict Q(s, a). Input size = 6; 5 for s, 1 for a.
-        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        self.model = torch.nn.Sequential(
-            torch.nn.Linear(6, 1024),
-            torch.nn.ReLU(),
-            torch.nn.Linear(1024, 512),
-            torch.nn.ReLU(),
-            torch.nn.Linear(512, 64),
-            torch.nn.ReLU(),
-            torch.nn.Linear(64, 1)
-        ).to(self.device)
+        self.model = ShittyModel()
         self.loss_fn = torch.nn.MSELoss()
-        self.optimizer = torch.optim.Adam(params=self.model.parameters(), lr=1e-4)
+
+        # define three optimizers for net1, net2, net3
+        learning_rate = 1e-5
+        self.optimizer1 = torch.optim.Adam(params=self.model.net1.parameters(), lr=learning_rate)
+        self.optimizer2 = torch.optim.Adam(params=self.model.net2.parameters(), lr=learning_rate)
+        self.optimizer3 = torch.optim.Adam(params=self.model.net3.parameters(), lr=learning_rate)
 
     def act(self, state):
         '''
@@ -305,18 +345,15 @@ class deep_q():
         1 if the paddle should move downward
         '''
         if np.random.uniform(0, 1) < self.epsilon:
-            if self.epsilon > 0.03:
-                self.epsilon *= 0.99
             return np.random.choice([-1, 0, 1])
 
         with torch.no_grad():
-            action = torch.argmax(torch.Tensor([
-                self.model(torch.Tensor(state + [-1]).to(self.device)).item(),
-                self.model(torch.Tensor(state + [0]).to(self.device)).item(),
-                self.model(torch.Tensor(state + [1]).to(self.device)).item()
-            ])) - 1
+            q1 = self.model.forward(state, action=-1).item()
+            q2 = self.model.forward(state, action=0).item()
+            q3 = self.model.forward(state, action=1).item()
 
-        return action.item()
+        action = np.argmax([q1, q2, q3]) - 1
+        return action
 
     def learn(self, state, action, reward, newstate):
         '''
@@ -331,16 +368,32 @@ class deep_q():
         @return:
         None
         '''
-        q_local = torch.Tensor([reward + self.gamma * max(
-            self.model(torch.Tensor(newstate + [-1]).to(self.device)).item(),
-            self.model(torch.Tensor(newstate + [0]).to(self.device)).item(),
-            self.model(torch.Tensor(newstate + [1]).to(self.device)).item()
-        )]).to(self.device)
-        q = self.model(torch.Tensor(state + [action]).to(self.device))
-        loss = self.alpha * self.loss_fn(q_local, q)
-        self.optimizer.zero_grad()
+        with torch.no_grad():
+            q_local = torch.Tensor([reward + self.gamma * max(
+                self.model.forward(newstate, action=-1).item(),
+                self.model.forward(newstate, action=0).item(),
+                self.model.forward(newstate, action=1).item()
+            )])
+        q = self.model.forward(state, action)
+        loss = self.loss_fn(q_local, q)
+        self.optimizer1.zero_grad()
+        self.optimizer2.zero_grad()
+        self.optimizer3.zero_grad()
         loss.backward()
-        self.optimizer.step()
+        if action == -1:
+            self.optimizer1.step()
+        if action == 0:
+            self.optimizer2.step()
+        if action == 1:
+            self.optimizer3.step()
+
+        """
+        with torch.no_grad():
+            q = self.model(torch.Tensor(state + [action]).to(self.device))
+            loss = self.loss_fn(q, q_local)
+            print("q' =", q.item(), ";q_local' =", q_local.item(), ";loss' =", loss.item())
+            print()
+        """
 
     def save(self, filename):
         '''
@@ -372,7 +425,7 @@ class deep_q():
 
     def report_q(self, state):
         with torch.no_grad():
-            Q = [self.model(torch.Tensor(state + [-1]).to(self.device)).item(),
-                 self.model(torch.Tensor(state + [0]).to(self.device)).item(),
-                 self.model(torch.Tensor(state + [1]).to(self.device)).item()]
-        return Q
+            q = [self.model.forward(state, action=-1).item(),
+                 self.model.forward(state, action=0).item(),
+                 self.model.forward(state, action=1).item()]
+        return q
