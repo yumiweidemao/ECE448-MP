@@ -1,3 +1,4 @@
+""" This file contains the EC deep_q learner without state quantization (to be used with test_model_7600.pkl). """
 import random
 from collections import deque
 
@@ -256,9 +257,9 @@ class ShittyModel(nn.Module):
         '''
         super(ShittyModel, self).__init__()
 
-        layer1_size = 16
-        layer2_size = 8
-        layer3_size = 4
+        layer1_size = 64
+        layer2_size = 32
+        layer3_size = 16
         # neural net for action=-1
         self.net1 = nn.Sequential(
             nn.Linear(5, layer1_size),

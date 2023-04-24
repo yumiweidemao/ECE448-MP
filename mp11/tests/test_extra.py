@@ -10,7 +10,7 @@ class TestStep(unittest.TestCase):
         q_learner=submitted.deep_q(0.05,0.05,0.99,5)
         q_learner.load('trained_model.pkl')
         pong_game = pong.PongGame(learner=q_learner, visible=False)
-        scores = pong_game.run(m_games=10, states=[])
+        scores, _, _ = pong_game.run(m_games=10, states=[])
         self.assertGreater(np.average(scores),8,
                            msg='''trained_model.pkl average score is %g which is not above 8
                            '''%(np.average(scores)))
@@ -21,7 +21,7 @@ class TestStep(unittest.TestCase):
         q_learner=submitted.deep_q(0.05,0.05,0.99,5)
         q_learner.load('trained_model.pkl')
         pong_game = pong.PongGame(learner=q_learner, visible=False)
-        scores = pong_game.run(m_games=10, states=[])
+        scores, _, _ = pong_game.run(m_games=10, states=[])
         self.assertGreater(np.average(scores),12,
                            msg='''trained_model.pkl average score is %g which is not above 12
                            '''%(np.average(scores)))
@@ -32,7 +32,7 @@ class TestStep(unittest.TestCase):
         q_learner=submitted.deep_q(0.05,0.05,0.99,5)
         q_learner.load('trained_model.pkl')
         pong_game = pong.PongGame(learner=q_learner, visible=False)
-        scores = pong_game.run(m_games=10, states=[])
+        scores, _, _ = pong_game.run(m_games=10, states=[])
         self.assertGreater(np.average(scores),16,
                            msg='''trained_model.pkl average score is %g which is not above 16
                            '''%(np.average(scores)))
@@ -43,7 +43,7 @@ class TestStep(unittest.TestCase):
         q_learner=submitted.deep_q(0.05,0.05,0.99,5)
         q_learner.load('trained_model.pkl')
         pong_game = pong.PongGame(learner=q_learner, visible=False)
-        scores = pong_game.run(m_games=10, states=[])
+        scores, _, _ = pong_game.run(m_games=10, states=[])
         self.assertGreater(np.average(scores),18,
                            msg='''trained_model.pkl average score is %g which is not above 18
                            '''%(np.average(scores)))
@@ -54,7 +54,7 @@ class TestStep(unittest.TestCase):
         q_learner=submitted.deep_q(0.05,0.05,0.99,5)
         q_learner.load('trained_model.pkl')
         pong_game = pong.PongGame(learner=q_learner, visible=False)
-        scores = pong_game.run(m_games=10, states=[])
+        scores, _, _ = pong_game.run(m_games=10, states=[])
         self.assertGreater(np.average(scores),20,
                            msg='''trained_model.pkl average score is %g which is not above 20
                            '''%(np.average(scores)))
