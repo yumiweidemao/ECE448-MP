@@ -256,18 +256,15 @@ class ShittyModel(nn.Module):
         '''
         super(ShittyModel, self).__init__()
 
-        layer1_size = 16
-        layer2_size = 8
-        layer3_size = 4
+        layer1_size = 64
+        layer2_size = 32
         # neural net for action=-1
         self.net1 = nn.Sequential(
             nn.Linear(5, layer1_size),
             nn.ReLU(),
             nn.Linear(layer1_size, layer2_size),
             nn.ReLU(),
-            nn.Linear(layer2_size, layer3_size),
-            nn.ReLU(),
-            nn.Linear(layer3_size, 1)
+            nn.Linear(layer2_size, 1)
         )
         # neural net for action=0
         self.net2 = nn.Sequential(
@@ -275,9 +272,7 @@ class ShittyModel(nn.Module):
             nn.ReLU(),
             nn.Linear(layer1_size, layer2_size),
             nn.ReLU(),
-            nn.Linear(layer2_size, layer3_size),
-            nn.ReLU(),
-            nn.Linear(layer3_size, 1)
+            nn.Linear(layer2_size, 1)
         )
         # neural net for action=1
         self.net3 = nn.Sequential(
@@ -285,9 +280,7 @@ class ShittyModel(nn.Module):
             nn.ReLU(),
             nn.Linear(layer1_size, layer2_size),
             nn.ReLU(),
-            nn.Linear(layer2_size, layer3_size),
-            nn.ReLU(),
-            nn.Linear(layer3_size, 1)
+            nn.Linear(layer2_size, 1)
         )
 
     def forward(self, state, action):
