@@ -1,3 +1,4 @@
+""" This file contains the EC deep_q learner without state quantization (to be used with test_model_7600.pkl). """
 import random
 from collections import deque
 
@@ -258,13 +259,16 @@ class ShittyModel(nn.Module):
 
         layer1_size = 64
         layer2_size = 32
+        layer3_size = 16
         # neural net for action=-1
         self.net1 = nn.Sequential(
             nn.Linear(5, layer1_size),
             nn.ReLU(),
             nn.Linear(layer1_size, layer2_size),
             nn.ReLU(),
-            nn.Linear(layer2_size, 1)
+            nn.Linear(layer2_size, layer3_size),
+            nn.ReLU(),
+            nn.Linear(layer3_size, 1)
         )
         # neural net for action=0
         self.net2 = nn.Sequential(
@@ -272,7 +276,9 @@ class ShittyModel(nn.Module):
             nn.ReLU(),
             nn.Linear(layer1_size, layer2_size),
             nn.ReLU(),
-            nn.Linear(layer2_size, 1)
+            nn.Linear(layer2_size, layer3_size),
+            nn.ReLU(),
+            nn.Linear(layer3_size, 1)
         )
         # neural net for action=1
         self.net3 = nn.Sequential(
@@ -280,7 +286,9 @@ class ShittyModel(nn.Module):
             nn.ReLU(),
             nn.Linear(layer1_size, layer2_size),
             nn.ReLU(),
-            nn.Linear(layer2_size, 1)
+            nn.Linear(layer2_size, layer3_size),
+            nn.ReLU(),
+            nn.Linear(layer3_size, 1)
         )
 
     def forward(self, state, action):
@@ -320,7 +328,7 @@ class deep_q():
         self.loss_fn = torch.nn.MSELoss()
 
         # define three optimizers for net1, net2, net3
-        learning_rate = 1e-6
+        learning_rate = 0
         self.optimizer1 = torch.optim.SGD(params=self.model.net1.parameters(), lr=learning_rate)
         self.optimizer2 = torch.optim.SGD(params=self.model.net2.parameters(), lr=learning_rate)
         self.optimizer3 = torch.optim.SGD(params=self.model.net3.parameters(), lr=learning_rate)

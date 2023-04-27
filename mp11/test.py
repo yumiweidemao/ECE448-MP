@@ -3,14 +3,14 @@ import submitted
 import matplotlib.pyplot as plt
 import numpy as np
 
-q_learner = submitted.deep_q(alpha=0.05, epsilon=0.10, gamma=0.99, nfirst=5)
-pong_game = pong.PongGame(learner=q_learner, visible=False)
-q_learner.load('test_model.pkl', train=True)
-games = 500
+q_learner = submitted.deep_q(alpha=0.05, epsilon=0.00, gamma=0.99, nfirst=5)
+pong_game = pong.PongGame(learner=q_learner, visible=True, state_quantization=None)
+q_learner.load('trained_model.pkl', train=False)
+games = 5
 
 scores, q_achieved, q_states = pong_game.run(m_games=games, states=[])
 
-q_learner.save('test_model.pkl')
+#q_learner.save('trained_model.pkl')
 
 fig = plt.figure(figsize=(14, 9), layout='tight')
 ax = [fig.add_subplot(3, 1, x) for x in range(1, 4)]
